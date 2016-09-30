@@ -10,9 +10,13 @@ FROM centos:7
 MAINTAINER koda
 
 USER root
+VOLUME /jupyter_file
+RUN mkdir -p  /root/.jupyter
+COPY jupyter_notebook_config.py  /root/.jupyter/
 
 
-#ENV SHELL2 /bin/bash
+
+
 
 RUN yum update -y
 #RUN yum install -y passwd
@@ -38,12 +42,12 @@ RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bash_profile
 RUN echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bash_profile
 RUN echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
 RUN source ~/.bash_profile
-RUN exec $SHELL2 -l
+
 
 RUN git clone https://github.com/yyuu/pyenv-virtualenv.git ~/.pyenv/plugins/pyenv-virtualenv
 RUN echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bash_profile
 RUN source ~/.bash_profile
-RUN exec $SHELL2 -l
+
 
 #bashで実行
 #python env
@@ -105,7 +109,7 @@ RUN echo 'if [[ -s ~/.nvm/nvm.sh ]];'  >> ~/.bash_profile
 RUN echo ' then source ~/.nvm/nvm.sh'  >> ~/.bash_profile
 RUN echo 'fi'  >> ~/.bash_profile
 RUN source ~/.bash_profile
-RUN exec $SHELL2 -l
+
 
 RUN /bin/bash -c "source ~/.bash_profile \
   && nvm install 0.12.15 \
@@ -141,7 +145,9 @@ RUN set -x && echo "install.packages(c('repr', 'IRdisplay', 'crayon', 'pbdZMQ', 
 && echo "IRkernel::installspec()" >> start.r \
 && source ~/.bash_profile \
 && mkdir -p /usr/share/doc/R-3.3.1/html \ 
-&& R --slave --vanilla < start.r
+&& R --slave --vanilla < start.r \
+&& rm -rf start.r
+
 
 RUN set -x&& echo "cd /jupyter_file" >> start.sh \
 && echo "source ~/.bash_profile" >> start.sh \
@@ -150,8 +156,4 @@ RUN set -x&& echo "cd /jupyter_file" >> start.sh \
 
 
 
-
-VOLUME /jupyter_file
-RUN mkdir -p  /root/.jupyter
-COPY jupyter_notebook_config.py  /root/.jupyter/
-CMD source /root/.bash_profile
+CMD sh start.sh
