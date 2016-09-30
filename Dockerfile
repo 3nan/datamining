@@ -16,8 +16,6 @@ COPY jupyter_notebook_config.py  /root/.jupyter/
 
 
 
-
-
 RUN yum update -y
 #RUN yum install -y passwd
 #RUN yum install -y sudo
@@ -128,7 +126,8 @@ RUN /bin/bash -c "source ~/.bash_profile \
 RUN wget http://curl.haxx.se/download/curl-7.37.0.tar.bz2 \
 && tar xf curl-7.37.0.tar.bz2 && rm -rf curl-7.37.0.tar.bz2 && cd curl-7.37.0 \
 && ./configure --enable-libcurl-option && make \
-&& make install
+&& make install \
+&& cd .. &&  rm -rf curl-7.37.0
 
 
 
