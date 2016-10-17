@@ -10,6 +10,8 @@ FROM centos:7
 MAINTAINER koda
 
 USER root
+#ホストとやり取りするディレクトリ
+RUN mkdir -p  /jupyter_file
 VOLUME /jupyter_file
 RUN mkdir -p  /root/.jupyter
 COPY jupyter_notebook_config.py  /root/.jupyter/
@@ -25,8 +27,7 @@ RUN yum update -y
 #RUN chown jupyter:jupyter /home/jupyter
 #RUN echo "jupyter ALL=(ALL) ALL" >> /etc/sudoers.d/jupyter
 
-#ホストとやり取りするディレクトリ
-RUN mkdir /jupyter_file
+
 
 #コンパイルに必要そうなものをここでインストール
 RUN yum -y install git
@@ -79,10 +80,6 @@ RUN set -x && yum -y install java-1.8.0-openjdk.x86_64  java-1.8.0-openjdk-devel
 
 
 
-#haskell
-RUN curl -sSL https://s3.amazonaws.com/download.fpcomplete.com/centos/7/fpco.repo | tee /etc/yum.repos.d/fpco.repo
-RUN yum -y install stack
-RUN stack setup
 
 #zeromq4 install これが一番はまった(ihaskellがこれをいれないとコンパイルできない)
 RUN echo '[saltstack-zeromq4]'>>/etc/yum.repos.d/saltstack-zeromq4.repo \
@@ -93,11 +90,8 @@ RUN echo '[saltstack-zeromq4]'>>/etc/yum.repos.d/saltstack-zeromq4.repo \
 && echo 'gpgkey=https://copr-be.cloud.fedoraproject.org/results/saltstack/zeromq4/pubkey.gpg'>>/etc/yum.repos.d/saltstack-zeromq4.repo \
 && echo 'enabled=1'>>/etc/yum.repos.d/saltstack-zeromq4.repo \
 && echo 'enabled_metadata=1'>>/etc/yum.repos.d/saltstack-zeromq4.repo \
-&& yum --enablerepo=saltstack-zeromq4 install -y zeromq zeromq-devel \
-&& stack install zeromq4-haskell \
-&& stack install ihaskell \
-&&  /bin/bash -c "source ~/.bash_profile \
-   /root/.local/bin/ihaskell install "
+&& yum --enablerepo=saltstack-zeromq4 install -y zeromq zeromq-devel 
+
 
 #jupyter-node
 #node
@@ -109,9 +103,19 @@ RUN echo 'fi'  >> ~/.bash_profile
 RUN source ~/.bash_profile
 
 
+RUN set -x&& echo "cd /jupyter_file" >> start.sh \
+&& echo "source ~/.bash_profile" >> start.sh \
+&& echo "/root/.local/bin/ihaskell install" >> start.sh \
+&& echo "stack exec jupyter notebook &" >> start.sh 
+
+
+
 RUN /bin/bash -c "source ~/.bash_profile \
   && nvm install 0.12.15 \
   && nvm alias default v0.12.15"
+
+
+
 
 
 RUN git clone https://github.com/notablemind/jupyter-nodejs.git
@@ -132,7 +136,7 @@ RUN wget http://curl.haxx.se/download/curl-7.37.0.tar.bz2 \
 
 
 RUN set -x && yum install -y epel-release \
-&& yum -y install R 
+&& yum -y --nogpgcheck install R 
 #&& mkdir -p /usr/share/doc/R-3.3.1/html \
 
 
@@ -148,10 +152,30 @@ RUN set -x && echo "install.packages(c('repr', 'IRdisplay', 'crayon', 'pbdZMQ', 
 && rm -rf start.r
 
 
-RUN set -x&& echo "cd /jupyter_file" >> start.sh \
-&& echo "source ~/.bash_profile" >> start.sh \
-&& echo "/root/.local/bin/ihaskell install" >> start.sh \
-&& echo "stack exec jupyter notebook &" >> start.sh 
+
+#haskell
+RUN curl -sSL https://s3.amazonaws.com/download.fpcomplete.com/centos/7/fpco.repo | tee /etc/yum.repos.d/fpco.repo
+RUN yum -y install stack
+RUN stack setup
+
+RUN mkdir -p /root/.stack/global-project
+RUN rm -rf /root/.stack/global-project/stack.yaml
+RUN echo flags: {} >> /root/.stack/global-project/stack.yaml \
+    && echo extra-package-dbs: [] >> /root/.stack/global-project/stack.yaml \
+    && echo packages: [] >> /root/.stack/global-project/stack.yaml \
+    && echo extra-deps: [] >> /root/.stack/global-project/stack.yaml \
+    && echo resolver: lts-6.2 >> /root/.stack/global-project/stack.yaml\
+    && stack setup
+
+
+RUN set -x && stack install haskell-src-exts
+RUN set -x \
+&& stack install ihaskell zeromq4-haskell \
+# && stack install ihaskell \
+&&  /bin/bash -c "source ~/.bash_profile \
+   /root/.local/bin/ihaskell install "
+
+
 
 
 
